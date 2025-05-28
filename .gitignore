@@ -2,7 +2,7 @@
 *.jpg
 *.png
 *.gif
-downloaded_images/
+downloaded_images/*
 
 # 排除数据库文件
 *.db
@@ -10,3 +10,4 @@ downloaded_images/
 # 排除Excel文件
 *.xlsx
 *.xls
+*.db

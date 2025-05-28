@@ -1,0 +1,242 @@
+320行
+
+ def crawl_barcode_with_row(barcode, thread_name, results_list, row_index):
+
+            print(f"线程 {thread_name} 开始处理条码: {barcode} (行号: {row_index})") # 增加日志
+
+            # 1. 检查数据库缓存
+            cached_data = get_product_from_db(barcode)
+            if cached_data and cached_data['product_name'] and cached_data['image_filepath'] and cached_data['product_name'] != "Not Found":
+                print(f"线程 {thread_name}: 条码 {barcode} 在缓存中找到有效数据。") # 增加日志
+                results_list.append((barcode, cached_data['product_name'], cached_data['image_filepath'], row_index)) # 添加行号
+                return # 从缓存获取，跳过爬取
+            elif cached_data and cached_data['product_name'] == "Not Found":
+                 print(f"线程 {thread_name}: 条码 {barcode} 在缓存中标记为未找到。") # 增加日志
+                 results_list.append((barcode, "Not Found", None, row_index)) # 添加未找到结果和行号
+                 return # 从缓存获取，跳过爬取
+
+
+            # 2. 数据库中未找到或缓存无效，进行爬取
+            url = BASE_URL.format(barcode)
+            driver = None
+            retry_count = 3
+            product_name = None
+            image_url = None
+            image_filepath = None
+
+            print(f"线程 {thread_name}: 缓存未命中或无效，开始网络爬取条码 {barcode}。") # 增加日志
+
+            for attempt in range(retry_count):
+                try:
+                    print(f"线程 {thread_name} (尝试 {attempt + 1}/{retry_count}): 启动浏览器并导航到 {url}") # 增加日志
+                    chrome_options = Options()
+                    chrome_options.add_argument("--headless")  # 无头模式：不显示浏览器窗口
+                    chrome_options.add_argument("--disable-gpu")  # 禁用 GPU 加速，有时可避免问题
+                    chrome_options.add_argument("--window-size=1920x1080")  # 设置浏览器窗口大小
+                    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+
+                    driver = webdriver.Chrome(options=chrome_options)
+                    stealth(driver,
+                            languages=["en-US", "en"],
+                            vendor="Google Inc.",
+                            platform="Win32",
+                            webgl_vendor="Intel Inc.",
+                            renderer="Intel Iris OpenGL Engine",
+                            fix_hairline=True,
+                            )
+
+                    driver.set_page_load_timeout(30)
+                    driver.get(url)
+
+                    print(f"线程 {thread_name} (尝试 {attempt + 1}/{retry_count}): 等待页面加载...") # 增加日志
+                    WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.TAG_NAME, "body"))
+                    )
+                    print(f"线程 {thread_name} (尝试 {attempt + 1}/{retry_count}): 页面加载完成。") # 增加日志
+
+
+                    # --- Cloudflare 拦截检测 ---
+                    if "Just a moment..." in driver.title or "Cloudflare" in driver.title or "Enable JavaScript and cookies to continue" in driver.page_source:
+                        print(f"线程 {thread_name} (尝试 {attempt + 1}/{retry_count}): 检测到 Cloudflare 拦截页面，进行重试。") # 增加日志
+                        if driver:
+                            driver.quit()
+                        continue # 进入下一次重试
+
+                    # --- 条码未找到检测 ---
+                    if "Barcode Not Found | Barcode Lookup" in driver.title:
+                        print(f"线程 {thread_name}: 条码 {barcode} 未找到，跳过下载和截图。") # 增加日志
+                        if driver:
+                            driver.quit()
+                        # 将未找到的条码也存入数据库，标记为无产品信息，避免重复爬取
+                        insert_product_to_db(barcode, "Not Found", None, None)
+                        results_list.append((barcode, "Not Found", None, row_index)) # 添加未找到结果和行号
+                        return # 立即退出函数
+
+                    # --- 提取数据 ---
+                    print(f"线程 {thread_name}: 开始提取产品信息...") # 增加日志
+                    try:
+                        # 提取产品名称
+                        product_name_element = WebDriverWait(driver, 5).until(
+                            EC.presence_of_element_located((By.XPATH, PRODUCT_NAME_XPATH))
+                        )
+                        product_name = product_name_element.text.strip()
+                        print(f"线程 {thread_name}: 提取到产品名称: '{product_name}'") # 增加日志
+                    except (TimeoutException, WebDriverException):
+                        print(f"线程 {thread_name}: 未找到产品名称元素或提取失败。") # 增加日志
+                        product_name = "N/A" # 未找到则标记为N/A
+
+                    try:
+                        # 提取图片URL
+                        image_element = WebDriverWait(driver, 5).until(
+                            EC.presence_of_element_located((By.XPATH, IMAGE_XPATH))
+                        )
+                        image_url = image_element.get_attribute('src')
+                        print(f"线程 {thread_name}: 提取到图片URL: {image_url}") # 增加日志
+                    except (TimeoutException, WebDriverException):
+                        print(f"线程 {thread_name}: 未找到图片元素或提取失败。") # 增加日志
+                        image_url = None # 未找到则标记为None
+
+                    # --- 下载图片 ---
+                    if image_url:
+                         image_filepath = download_image(image_url, barcode)
+                    else:
+                         image_filepath = None
+                         print(f"线程 {thread_name}: 没有图片URL，跳过图片下载。") # 增加日志
+
+
+                    # --- 存储到数据库 ---
+                    insert_product_to_db(barcode, product_name, image_url, image_filepath)
+                    print(f"线程 {thread_name}: 条码 {barcode} 数据已存入数据库。") # 增加日志
+
+                    # --- 添加结果到列表 ---
+                    results_list.append((barcode, product_name, image_filepath, row_index)) # 添加行号
+
+                    print(f"线程 {thread_name}: 成功处理条码 {barcode}。") # 增加日志
+                    break # 成功完成，退出重试循环
+
+                except (TimeoutException, WebDriverException) as e:
+                    print(f"线程 {thread_name} (尝试 {attempt + 1}/{retry_count}): 使用 Selenium 发生错误：{e}") # 增加日志
+                    if driver:
+                        driver.quit() # 发生错误时关闭浏览器实例
+                    # 如果还有重试次数，打印重试提示
+                    if attempt < retry_count - 1:
+                        print(f"线程 {thread_name}: 进行重试。") # 增加日志
+                    else:
+                        # 如果达到最大重试次数，打印失败提示
+                        print(f"线程 {thread_name}: 达到最大重试次数，未能成功处理条码 {barcode}。") # 增加日志
+                except Exception as e:
+                    print(f"线程 {thread_name} (尝试 {attempt + 1}/{retry_count}): 发生未知错误：{e}") # 增加日志
+                    if driver:
+                        driver.quit() # 发生错误时关闭浏览器实例
+                    break # 未知错误，不再重试
+                finally:
+                    if driver:
+                        driver.quit() # 确保每次尝试后都关闭浏览器实例
+
+            # 如果所有重试都失败且未成功，将失败信息添加到结果列表（可选，取决于是否需要在Excel中标记失败）
+            # if not success:
+            #     results_list.append((barcode, "爬取失败", None, row_index)) # 添加行号
+
+
+
+260行
+
+
+def run_barcode_excel_crawler(
+    excel_filepath="NR+SHISEIDO SPECIAL OFFER.xlsx",
+    barcode_column_letter="B",
+    start_row=12,
+    end_row=20,
+    product_name_column_letter="P",
+    image_column_letter="N",
+    translate_dst_column_letter="O"
+):
+    total_start_time = time.time()  # 记录总程序开始时间
+    print("脚本开始执行。")  # 增加日志
+
+    print(f"用户输入：Excel文件路径='{excel_filepath}', 条码列='{barcode_column_letter}', 开始行={start_row}, 结束行={end_row}, 产品名称列='{product_name_column_letter}', 图片列='{image_column_letter}'")  # 增加日志
+
+    # 2. 初始化数据库
+    print("初始化数据库...")  # 增加日志
+    init_database()
+    print("数据库初始化完成。")  # 增加日志
+
+    # 3. 读取条形码列表 (包含行号)
+    barcodes_with_row_to_crawl = read_barcodes_from_excel_with_row(excel_filepath, barcode_column_letter, start_row, end_row)
+
+    if not barcodes_with_row_to_crawl:
+        print("未从Excel文件中读取到有效的条形码，脚本结束。")
+        return None
+    else:
+        print(f"成功读取 {len(barcodes_with_row_to_crawl)} 个条码及对应行号。")  # 增加日志
+
+        # 4. 执行多线程爬取
+        results_list = []  # 用于存储爬取结果 (barcode, product_name, image_filepath, row_index)
+
+        threads = []
+        num_threads = DEFAULT_THREADS
+
+        active_threads = []
+        thread_counter = 0
+
+        def run_thread(barcode_with_row, thread_name, results_list):
+            barcode, row_index = barcode_with_row
+            crawl_barcode_with_row(barcode, thread_name, results_list, row_index)
+            active_threads.remove(threading.current_thread())
+
+        print(f"开始使用 {min(num_threads, len(barcodes_with_row_to_crawl))} 个线程进行爬取...")  # 增加日志
+
+        for barcode_with_row in barcodes_with_row_to_crawl:
+            thread_name = f"Thread-{thread_counter + 1}"
+            thread = threading.Thread(target=run_thread, args=(barcode_with_row, thread_name, results_list))
+            threads.append(thread)
+            active_threads.append(thread)
+            thread.start()
+            thread_counter += 1
+
+            while len(active_threads) >= num_threads:
+                time.sleep(0.1)
+                active_threads = [t for t in active_threads if t.is_alive()]
+
+        for thread in threads:
+            thread.join()
+
+        # 5. 更新Excel文件
+        print("\n开始更新Excel文件...")  # 增加日志
+        update_excel_with_results_with_row(excel_filepath, results_list, barcode_column_letter, product_name_column_letter, image_column_letter)
+        print("Excel文件更新完成。")  # 增加日志
+
+        total_end_time = time.time()  # 记录总程序结束时间
+        total_execution_time = total_end_time - total_start_time  # 计算总执行时间
+
+        num_barcodes = len(barcodes_with_row_to_crawl)
+        average_time_per_barcode = 0
+        if num_barcodes > 0:
+            average_time_per_barcode = total_execution_time / num_barcodes
+
+        print("\n" + "=" * 30)
+        print(f"脚本执行完成。")
+        print(f"总执行时间 (包括Excel更新): {total_execution_time:.2f} 秒")
+        print(f"处理条码数量: {num_barcodes}")
+        if num_barcodes > 0:
+            print(f"平均每个条码时间: {average_time_per_barcode:.2f} 秒")
+        print("=" * 30)
+
+        #--- 添加翻译功能 ---
+        print("\n开始进行翻译...")  # 添加翻译开始提示
+
+        # 调用翻译函数
+        output_path = translate_excel(
+            excel_filepath,  # 输入文件路径
+            output_path=None,  # 使用默认输出路径 (原文件名后加 _translated.xlsx)
+            start_row=start_row,  # 翻译的起始行
+            end_row=end_row,  # 翻译的结束行
+            src_col=product_name_column_letter,  # 需要翻译的源列
+            dst_col=translate_dst_column_letter,  # 翻译结果写入的目标列
+            show_log=True  # 显示翻译日志
+        )
+
+        print("翻译过程完成。")  # 添加翻译结束提示
+
+    print("\n脚本执行完毕。")
+    return output_path

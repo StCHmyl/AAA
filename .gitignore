@@ -1,0 +1,12 @@
+# 排除图片文件
+*.jpg
+*.png
+*.gif
+downloaded_images/
+
+# 排除数据库文件
+*.db
+
+# 排除Excel文件
+*.xlsx
+*.xls

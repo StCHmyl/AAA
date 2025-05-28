@@ -232,7 +232,8 @@ def crawl_barcode_with_row(barcode, thread_name, results_list, row_index):
             #     results_list.append((barcode, "爬取失败", None, row_index)) # 添加行号
 
 # --- 主程序入口 ---
-if __name__ == "__main__":
+
+def main():
     total_start_time = time.time() # 记录总程序开始时间
     print("脚本开始执行。") # 增加日志
     # 1. 获取用户输入
@@ -251,9 +252,10 @@ if __name__ == "__main__":
                 break
         except ValueError:
             print("请输入有效的数字行号。")
-    product_name_column_letter = input("请输入产品名称写入的列字母 (例如 P) [P]: ").strip().upper() or "P"
+
     image_column_letter = input("请输入图片嵌入的列字母 (例如 N) [N]: ").strip().upper() or "N"
-    translate_dst_column_letter = input("请输入翻译结果写入的列字母 (例如 O) [O]: ").strip().upper() or "O"
+    product_name_column_letter = input("请输入产品名称写入的列字母 (例如 O) [O]: ").strip().upper() or "O"
+    translate_dst_column_letter = input("请输入翻译结果写入的列字母 (例如 P) [P]: ").strip().upper() or "P"
     print(f"用户输入：Excel文件路径='{excel_filepath}', 条码列='{barcode_column_letter}', 开始行={start_row}, 结束行={end_row}, 产品名称列='{product_name_column_letter}', 图片列='{image_column_letter}'") # 增加日志
     # 2. 初始化数据库
     print("初始化数据库...") # 增加日志
@@ -340,3 +342,6 @@ if __name__ == "__main__":
         )
         print("翻译过程完成。") # 添加翻译结束提示
     print("\n脚本执行完毕。")
+
+if __name__ == "__main__":
+    main()

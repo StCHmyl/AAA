@@ -8,7 +8,7 @@ import threading
 from threading import Lock
 from queue import Queue
 
-#匹配香水时代名称
+# 匹配香水时代名称
 from difflib import SequenceMatcher
 from rapidfuzz import fuzz
 import pandas as pd
@@ -64,111 +64,106 @@ class PerfumeMatcher:
         matches = self.get_all_matches(text, threshold)
         return [m['原始名称'] for m in matches] if matches else None
 
-#启动读取香水名称数据表
+    def get_CHINESE_NAME(self, ean):
+        """根据ean条码从中文品名汇总表.xlsx获取中文名称"""
+        try:
+            # 这里需要实现从中文品名汇总表.xlsx中根据ean查找中文名称的逻辑
+            # 示例代码 - 实际实现需要根据具体文件格式调整
+            if not hasattr(self, 'ean_df'):
+                self.ean_df = pd.read_excel('中文品名汇总表.xlsx')
+            
+            result = self.ean_df[self.ean_df['条码'] == ean]
+            if not result.empty:
+                print(f"找到EAN {ean} 对应的中文品名: {result.iloc[0]['中文品名']}")
+                return result.iloc[0]['中文品名']
+            return None
+        except Exception as e:
+            print(f"EAN查找失败: {str(e)}")
+            return None
+
+# 启动读取香水名称数据表
 matcher = PerfumeMatcher('all(1).xlsx')
 
 MAX_WORKERS = 15
 
 class APICounter:
-    """API调用计数器（线程安全）
-    
-    属性：
-    count : int - 累计API调用次数
-    _lock : Lock - 保证线程安全的锁
-    
-    方法：
-    increment() : 增加计数器
-    reset() : 重置并返回当前计数值
-    """
+    """API调用计数器（线程安全）"""
     def __init__(self):
-        """初始化计数器"""
-        self.count = 0  # 从0开始计数
-        self._lock = Lock()  # 创建线程锁
+        self.count = 0
+        self._lock = Lock()
     
     def increment(self):
-        """原子化增加计数器（线程安全）"""
-        with self._lock:  # 自动获取和释放锁
+        with self._lock:
             self.count += 1
     
     def reset(self):
-        """原子化重置计数器并返回当前值（线程安全）"""
         with self._lock:
             count = self.count
-            self.count = 0  # 重置为0
-            return count  # 返回重置前的值
+            self.count = 0
+            return count
 
 api_counter = APICounter()
 
 client = OpenAI(
-    api_key="sk-54a0d94ee3354bf7ac42da390d1ba7ba",
-    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+    api_key="sk-54a0d94ee3354bf7ac42da390d1ba7ba",#阿里云
+    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",#阿里云
+    #base_url="https://api.deepseek.com",
+    #api_key="sk-f8fed3abc342479685d308cc8cfc51a6",
 )
 prompt0 = "任务背景：将提供给你一段美妆产品描述和参考内容（参考内容可能与美妆产品描述不太相关，如果不相关请当做不存在。如果参考内容可能与美妆产品描述相关，请参考参考内容进行处理）。\n任务目标：将美妆产品描述进行整理，格式要求：【品牌名（如有）】 【产品名（如有）】 【规格/毫升数（如有）】其中产品名和规格翻译成中文，要求贴合美妆产品的实际名称（信达雅）{产品名必须翻译为中文}【如果原来的顺序错乱，请调换】【例如：【感官之水】【淡香水】【50毫升】】，不要输出多余的东西"
-prompt = "将美妆产品描述翻译成中文，要求贴合美妆产品描述，并翻译成中文。输出格式如下：【品牌名（如有）】 【产品名（如有）】 【规格/毫升数（如有）】【如果原来的顺序错乱，请调换】【例如：【感官之水】【淡香水】【50毫升】】，不要输出多余的东西"
-prompt1 = """将美妆产品描述翻译成中文，要求贴合美妆行业常规命名，产品名必须翻译为中文。输出格式如下：
 
-（品牌 | 产品 | 色号 | 规格 | 备注）
-
-说明要求如下：
-- “品牌”保留英文原名；
-- “产品”翻译为中文，使用中文市场通用名称（信达雅）；
-- “色号”前请加上“#”，并保留英文原文（含编号），不得翻译（例如：#203 Blushed Mallow）；
-- 若描述中缺少色号、规格或备注，请用“-”占位；
-- “备注”仅在原始描述中明确出现时填写，禁止自行添加；
-- 若描述顺序错乱，请自动整理为标准顺序；
-- 输出中不要包含除翻译结果之外的任何内容。"""
 def api_counter_thread():
-    """每分钟统计API调用次数的后台线程
-    
-    工作流程：
-    1. 记录初始时间
-    2. 每分钟循环执行：
-        a. 重置计数器并获取计数值
-        b. 计算请求速率
-        c. 打印统计信息
-    3. 使用daemon模式运行，主程序退出时自动结束
-    """
-    last_time = time.time()  # 记录初始时间戳
+    last_time = time.time()
     while True:
-        time.sleep(60)  # 精确等待60秒
+        time.sleep(60)
         current_time = time.time()
-        count = api_counter.reset()  # 获取并重置计数器
+        count = api_counter.reset()
         elapsed_time = current_time - last_time
-        # 计算每秒请求数（处理除零情况）
         requests_per_second = count / elapsed_time if elapsed_time > 0 else 0
-        # 格式化输出统计信息
         print(f"[统计] 最近1分钟API请求次数: {count} (平均 {requests_per_second:.2f} 次/秒)")
-        last_time = current_time  # 更新时间戳
+        last_time = current_time
 
-def translate_single(text, pinpai=None):
+def translate_single(text, ean=None, pinpai=None):
+    """新版翻译函数，支持ean条码参数"""
     if not text or str(text).strip().lower() == 'nan':
         return "NAN"
+    
+    # 优先使用ean条码匹配
+    if ean:
+        print(f"[INFO] 使用EAN条码匹配: {ean}")
+        chinese_name = matcher.get_CHINESE_NAME(ean)
+        if chinese_name:
+            return chinese_name
+    
+    # 无ean或匹配失败时使用香水名称匹配
     name_results = matcher.get_top_names(str(text))
     
     if name_results:
-        cankaoneirong = "参考内容：" + ", ".join(name_results)+"\n如果参考内容中的英文与待翻译内容没有任何相似，请不要参考参考内容，品牌名保留英文" # 使用逗号和空格连接列表元素
+        cankaoneirong = "参考内容：" + ", ".join(name_results)+"\n如果参考内容中的英文与待翻译内容没有任何相似，请不要参考参考内容，品牌名保留英文"
     else:
-        cankaoneirong = "参考内容：无" # 或者可以设置为空字符串: cankaoneirong = "参考内容："
+        cankaoneirong = "参考内容：无"
+    
     daifanyineirong = "待翻译内容：" + str(text)
-    #pinpaiming = "品牌名：" + str(pinpai) if pinpai else "谢谢你"
+    
     completion = client.chat.completions.create(
         model="deepseek-v3",
         messages=[
             {"role": "system", "content": prompt0},
             {"role": "user", "content": cankaoneirong},
             {"role": "user", "content": daifanyineirong},
-            #{"role": "user", "content": pinpaiming}
-            
         ],
         temperature=0.1,
-        #extra_body={"enable_thinking": False},
     )
     api_counter.increment()
+    #打印参考内容
+    print(f"参考内容：")
     print(name_results)
-    print(completion.choices[0].message.content)
+    print(f"待翻译内容：")
+    print(text)
+    #print(completion.choices[0].message.content)
     return completion.choices[0].message.content
 
-def process_single(ws, row_idx, src_col_idx, dst_col_idx, show_log=True):
+def process_single(ws, row_idx, src_col_idx, dst_col_idx, barcode_col_idx=None, show_log=True):
     try:
         src_cell = ws.cell(row=row_idx, column=src_col_idx+1)
         original = src_cell.value
@@ -177,13 +172,19 @@ def process_single(ws, row_idx, src_col_idx, dst_col_idx, show_log=True):
             ws.cell(row=row_idx, column=dst_col_idx+1, value="NAN")
             return True
             
+        # 获取ean条码（如果提供了barcode列）
+        ean = None
+        if barcode_col_idx is not None:
+            barcode_cell = ws.cell(row=row_idx, column=barcode_col_idx+1)
+            ean = barcode_cell.value if barcode_cell.value else None
+            
         try:
-            result = translate_single(original)
+            result = translate_single(original, ean)
             ws.cell(row=row_idx, column=dst_col_idx+1, value=result)
         except Exception as e:
             try:
                 print(f"第{row_idx}行第一次翻译失败，正在重试...")
-                result = translate_single(original)
+                result = translate_single(original, ean)
                 ws.cell(row=row_idx, column=dst_col_idx+1, value=result)
             except Exception as e:
                 ws.cell(row=row_idx, column=dst_col_idx+1, value="翻译失败")
@@ -224,36 +225,25 @@ def get_excel_row_count(input_path):
         return -1
 
 def translate_excel(input_path, output_path=None, start_row=0, end_row=None,
-                  src_col=3, dst_col=11, show_log=True):
-    """
-    主翻译函数 - 使用openpyxl处理Excel文件
-    
-    参数说明：
-    input_path: 输入文件路径
-    output_path: 输出文件路径（默认在原文件名后加_translated）
-    start_row: 起始行号（从0开始计数，对应Excel第2行）
-    end_row: 结束行号（包含该行）
-    src_col: 源列（可以是字母或数字，从0开始）
-    dst_col: 目标列（同上）
-    show_log: 是否显示详细日志
-    
-    注意事项：
-    1. openpyxl行号从1开始，因此代码中有+1调整
-    2. start_row参数从0开始以保持接口统一
-    3. 使用多线程处理提高效率（MAX_WORKERS控制并发数）
-    """
-    
-
-    # 列名/列号转换处理（支持字母和数字两种输入格式）
+                  src_col=3, dst_col=11, barcode_col=None, show_log=True):
+    """主翻译函数，支持barcode_col参数"""
     if isinstance(src_col, str):
-        src_col_idx = col_name_to_number(src_col)  # 将字母列名转为数字索引
+        src_col_idx = col_name_to_number(src_col)
     else:
-        src_col_idx = src_col  # 直接使用数字索引
+        src_col_idx = src_col
         
     if isinstance(dst_col, str):
         dst_col_idx = col_name_to_number(dst_col)
     else:
         dst_col_idx = dst_col
+        
+    # 处理barcode_col参数
+    barcode_col_idx = None
+    if barcode_col is not None:
+        if isinstance(barcode_col, str):
+            barcode_col_idx = col_name_to_number(barcode_col)
+        else:
+            barcode_col_idx = barcode_col
 
     try:
         wb = openpyxl.load_workbook(input_path)
@@ -266,15 +256,11 @@ def translate_excel(input_path, output_path=None, start_row=0, end_row=None,
         if end_row is None or end_row > total_rows:
             end_row = total_rows
             
-        #counter_thread = threading.Thread(target=api_counter_thread, daemon=True) # 启动API调用计数器线程
-        #counter_thread.start()  
-        
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             futures = []
-            # 处理标题行,开始行不做处理，结尾行+1
-            for row_idx in range(start_row , end_row + 1):  # openpyxl行号从1开始
+            for row_idx in range(start_row, end_row + 1):
                 futures.append(executor.submit(
-                    process_single, ws, row_idx, src_col_idx, dst_col_idx, show_log
+                    process_single, ws, row_idx, src_col_idx, dst_col_idx, barcode_col_idx, show_log
                 ))
             
             for future in tqdm(as_completed(futures), total=end_row-start_row+1, desc="翻译进度"):
@@ -296,17 +282,7 @@ def translate_excel(input_path, output_path=None, start_row=0, end_row=None,
         }
 
 if __name__ == "__main__":
-    """
-    input_file = "111-R-SAP-库存.xlsx"
-    translate_excel(
-        input_file,
-        start_row=4000,
-        end_row=5000,
-        src_col='D',
-        dst_col='M',
-        show_log=False
-    )
-    """
-    translate_single("LOEWE SOLO EDT 150 + 20 ML")
-    
-
+    answer=translate_single("LANCOME SET GENIFIQUE FACE 100 & LIGHT P")
+    #打印翻译结果
+    print("翻译结果：")
+    print(f"{answer}")

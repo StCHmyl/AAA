@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Excel 表格处理器</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Excel 表格处理器</h1>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="file">选择Excel文件:</label>
+                <input type="file" id="file" name="file" accept=".xlsx,.xls" required>
+                <span class="file-note">(最大文件大小: 100MB)</span>
+            </div>
+            
+            <div class="form-group">
+                <label for="barcode_col">条码列字母:</label>
+                <input type="text" id="barcode_col" name="barcode_col" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="start_row">开始行号:</label>
+                <input type="number" id="start_row" name="start_row" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="end_row">结束行号:</label>
+                <input type="number" id="end_row" name="end_row" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="image_col">图片列字母:</label>
+                <input type="text" id="image_col" name="image_col" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="name_col">产品名列字母:</label>
+                <input type="text" id="name_col" name="name_col" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="translate_col">翻译列字母:</label>
+                <input type="text" id="translate_col" name="translate_col" required>
+            </div>
+            
+            <button type="submit">处理表格</button>
+        </form>
+        
+        <div id="progress" class="hidden">
+            <p>正在处理中，请稍候...</p>
+            <div class="loader"></div>
+        </div>
+        
+        <div id="downloadSection" class="hidden">
+            <p>处理完成！</p>
+            <a id="downloadLink" class="download-btn">下载处理后的文件</a>
+        </div>
+    </div>
+
+    <script>
+    $(document).ready(function() {
+        $('#uploadForm').submit(function(e) {
+            e.preventDefault();
+            
+            $('#progress').removeClass('hidden');
+            $('#downloadSection').addClass('hidden');
+            
+            let formData = new FormData(this);
+            
+            $.ajax({
+                url: '/upload',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    $('#progress').addClass('hidden');
+                    if(response.success) {
+                        $('#downloadLink').attr('href', '/download/' + response.filename);
+                        $('#downloadSection').removeClass('hidden');
+                    } else {
+                        alert('处理失败: ' + response.error);
+                    }
+                },
+                error: function(xhr) {
+                    $('#progress').addClass('hidden');
+                    alert('请求失败: ' + xhr.responseJSON.error);
+                }
+            });
+        });
+    });
+    </script>
+</body>
+</html>

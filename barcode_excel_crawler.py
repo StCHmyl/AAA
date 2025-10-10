@@ -146,10 +146,10 @@ def crawl_barcode_with_row(barcode, thread_name, results_list, row_index):
                 fix_hairline=True,
             )
             #time.sleep(random.uniform(0.5, 1.5))
-            driver.set_page_load_timeout(30)
+            driver.set_page_load_timeout(10)
             driver.get(url)
             print(f"线程 {thread_name} (尝试 {attempt + 1}/{retry_count}): 等待页面加载...") # 增加日志
-            WebDriverWait(driver, 10).until(
+            WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
             print(f"线程 {thread_name} (尝试 {attempt + 1}/{retry_count}): 页面加载完成。") # 增加日志

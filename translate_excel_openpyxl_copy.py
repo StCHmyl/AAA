@@ -7,7 +7,7 @@ import time
 import threading
 from threading import Lock
 from queue import Queue
-
+import json
 #匹配香水时代名称
 from difflib import SequenceMatcher
 from rapidfuzz import fuzz
@@ -100,7 +100,7 @@ class APICounter:
 api_counter = APICounter()
 
 client = OpenAI(
-    api_key="sk-54a0d94ee3354bf7ac42da390d1ba7ba",
+    api_key=json.load(open("config.json"))["api_key"],#阿里云
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
 )
 prompt = "将美妆产品描述翻译成中文，要求贴合美妆产品的实际名称（信达雅）{产品名必须翻译为中文}，格式要求：【品牌名（如有）】 【产品名（如有）】 【规格/毫升数（如有）】【如果原来的顺序错乱，请调换】【例如：【感官之水】【淡香水】【50毫升】】，不要输出多余的东西"

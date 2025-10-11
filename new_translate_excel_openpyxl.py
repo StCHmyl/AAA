@@ -12,7 +12,7 @@ from queue import Queue
 from difflib import SequenceMatcher
 from rapidfuzz import fuzz
 import pandas as pd
-
+import json
 class PerfumeMatcher:
     def __init__(self, term_file):
         self.df = pd.read_excel(term_file)
@@ -105,7 +105,7 @@ class APICounter:
 api_counter = APICounter()
 
 client = OpenAI(
-    api_key="sk-54a0d94ee3354bf7ac42da390d1ba7ba",#阿里云
+    api_key=json.load(open("config.json"))["api_key"],#阿里云
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",#阿里云
     #base_url="https://api.deepseek.com",
     #api_key="sk-f8fed3abc342479685d308cc8cfc51a6",

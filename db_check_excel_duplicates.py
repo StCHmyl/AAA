@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-check_excel_duplicates.py - 检查Excel文件中的重复内容
+check_excel_duplicates.py - 检查被导出的Excel文件中的重复内容
 
 功能：
 1. 检查导出的Excel文件中是否有重复的行

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-check_barcode_issues.py - 检查条码数据问题
+check_barcode_issues.py - 检查barcode_cache.db数据库中的条码数据问题
 """
 
 import sqlite3

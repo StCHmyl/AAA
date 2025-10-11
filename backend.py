@@ -109,7 +109,11 @@ def crawl_barcode_with_row(barcode, thread_name, results_list, row_index):
         return  # 从缓存获取，跳过爬取
     elif cached_data and cached_data['product_name'] == "Not Found":
         print(f"线程 {thread_name}: 条码 {barcode} 在缓存中标记为未找到。")  # 增加日志
-        results_list.append((barcode, "Not Found", None, row_index))  # 添加未找到结果和行号
+        # results_list.append((barcode, "Not Found", None, row_index))  # 添加未找到结果和行号
+        return  # 从缓存获取，跳过爬取
+    elif cached_data and cached_data['product_name'] == "N/A":
+        print(f"线程 {thread_name}: 条码 {barcode} 在缓存中标记为不规则数据。")  # 增加日志
+        # results_list.append((barcode, "Not Found", None, row_index))  # 添加未找到结果和行号
         return  # 从缓存获取，跳过爬取
     # 2. 数据库中未找到或缓存无效，进行爬取
     url = BASE_URL.format(barcode)
@@ -186,7 +190,7 @@ def crawl_barcode_with_row(barcode, thread_name, results_list, row_index):
                     driver.quit()
                 # 将未找到的条码也存入数据库，标记为无产品信息，避免重复爬取
                 insert_product_to_db(barcode, "Not Found", None, None)
-                results_list.append((barcode, "Not Found", None, row_index))  # 添加未找到结果和行号
+                #results_list.append((barcode, "Not Found", None, row_index))  # 添加未找到结果和行号
                 return  # 立即退出函数
             # --- 提取数据 ---
             print(f"线程 {thread_name}: 开始提取产品信息...")  # 增加日志
@@ -196,10 +200,24 @@ def crawl_barcode_with_row(barcode, thread_name, results_list, row_index):
                     EC.presence_of_element_located((By.XPATH, PRODUCT_NAME_XPATH))
                 )
                 product_name = product_name_element.text.strip()
+                #对产品名称进行检测，如果前6个字符都是数字，第七位是一个"."，则认为是错误的产品名称，依旧记录为None 
+                if len(product_name) >= 7 and product_name[:6].isdigit() and product_name[6] == ".":
+                    print(f"线程 {thread_name}: 提取到的产品名称 '{product_name}' 格式异常，标记为未找到。")  # 增加日志
+                    product_name = None
                 print(f"线程 {thread_name}: 提取到产品名称: '{product_name}'")  # 增加日志
             except (TimeoutException, WebDriverException):
                 print(f"线程 {thread_name}: 未找到产品名称元素或提取失败。")  # 增加日志
                 product_name = "N/A"  # 未找到则标记为N/A
+            # --- 提取图片URL ---
+            # 如果产品名称异常，即为“N/A”，则认为产品名称异常，跳过图片提取和下载
+            if product_name == "N/A":
+                print(f"线程 {thread_name}: 产品名称异常，标记为“N/A”，跳过图片提取和下载。")  # 增加日志
+                image_url = None
+                image_filepath = None
+                # 将异常数据存入数据库，标记为N/A，避免重复爬取
+                insert_product_to_db(barcode, "N/A", None, None)
+                #results_list.append((barcode, "Not Found", None, row_index))  # 添加未找到结果和行号
+                return  # 立即退出函数
             try:
                 # 提取图片URL
                 image_element = WebDriverWait(driver, 5).until(

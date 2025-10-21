@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件替换工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .drop-zones {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .drop-zone {
+            border: 3px dashed #4facfe;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+        
+        .drop-zone:hover {
+            border-color: #667eea;
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+        
+        .drop-zone.drag-over {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .drop-zone h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .drop-zone p {
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+        
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            text-align: left;
+        }
+        
+        .file-info h4 {
+            color: #495057;
+            margin-bottom: 8px;
+        }
+        
+        .file-info p {
+            margin: 5px 0;
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .instructions {
+            background: #e7f3ff;
+            border-left: 4px solid #4facfe;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .instructions h3 {
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+            color: #6c757d;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .manual-steps {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .manual-steps h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .manual-steps ol {
+            margin-left: 20px;
+            color: #856404;
+        }
+        
+        .manual-steps li {
+            margin-bottom: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .drop-zones {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📁 文件替换工具</h1>
+            <p>轻松替换downloaded_images文件夹中的错误文件</p>
+        </div>
+        
+        <div class="content">
+            <div class="instructions">
+                <h3>使用说明</h3>
+                <ol>
+                    <li>点击<strong>"授权访问文件夹"</strong>按钮，选择downloaded_images文件夹进行授权</li>
+                    <li>在 <strong>A区</strong> 拖入需要替换的错误文件（来自downloaded_images文件夹）</li>
+                    <li>在 <strong>B区</strong> 拖入正确的替换文件 <strong>或 粘贴复制的图片</strong></li>
+                    <li>点击<strong>"自动执行替换"</strong>按钮完成文件替换</li>
+                </ol>
+                <p style="margin-top: 10px; color: #495057; font-size: 0.9em;">
+                    <strong>注意：</strong>此工具使用浏览器的File System Access API，无需后端服务器即可直接操作文件。
+                </p>
+            </div>
+            
+            <div class="drop-zones">
+                <div class="drop-zone" id="zoneA" data-zone="A">
+                    <h3>🔄 A区 - 错误文件</h3>
+                    <p>拖入需要替换的错误文件</p>
+                    <div class="file-info" id="infoA" style="display: none;">
+                        <h4>已选择文件：</h4>
+                        <p id="fileNameA"></p>
+                        <p id="fileSizeA"></p>
+                    </div>
+                </div>
+                
+                <div class="drop-zone" id="zoneB" data-zone="B">
+                    <h3>✅ B区 - 正确文件</h3>
+                    <p>拖入正确的替换文件 或 粘贴复制的图片</p>
+                    <div class="file-info" id="infoB" style="display: none;">
+                        <h4>已选择文件：</h4>
+                        <p id="fileNameB"></p>
+                        <p id="fileSizeB"></p>
+                    </div>
+                </div>
+            </div>
+            
+        <div class="controls">
+            <button class="btn" id="authBtn">授权访问文件夹</button>
+            <button class="btn" id="replaceBtn" disabled>自动执行替换</button>
+        </div>
+            
+            <div class="status" id="status"></div>
+            
+            <div class="manual-steps" id="manualSteps" style="display: none;">
+                <h3>📋 手动替换步骤</h3>
+                <ol id="stepsList">
+                    <!-- 步骤将在这里动态生成 -->
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let fileA = null;
+        let fileB = null;
+        let dirHandle = null; // 存储目录句柄
+        
+        // 授权按钮点击事件
+        document.getElementById('authBtn').addEventListener('click', async function() {
+            try {
+                // 弹出选择目录的对话框，用户授予访问权限
+                dirHandle = await window.showDirectoryPicker();
+                
+                const statusDiv = document.getElementById('status');
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '文件夹访问授权成功！现在可以执行文件替换操作。';
+                
+                // 更新按钮状态
+                this.textContent = '已授权';
+                this.disabled = true;
+                this.style.background = '#28a745';
+                
+                console.log('目录授权成功:', dirHandle);
+                
+            } catch (err) {
+                console.error('授权失败:', err);
+                const statusDiv = document.getElementById('status');
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '授权失败或操作已取消: ' + (err.message || '未知错误');
+            }
+        });
+        
+        // 初始化拖放区域
+        const zones = document.querySelectorAll('.drop-zone');
+        zones.forEach(zone => {
+            zone.addEventListener('dragover', handleDragOver);
+            zone.addEventListener('dragleave', handleDragLeave);
+            zone.addEventListener('drop', handleDrop);
+        });
+
+        // 为B区添加粘贴事件监听器 - 在鼠标悬停时监听粘贴
+        const zoneB = document.getElementById('zoneB');
+        let pasteListenerActive = false;
+        
+        // 鼠标进入B区时激活粘贴监听
+        zoneB.addEventListener('mouseenter', function() {
+            if (!pasteListenerActive) {
+                document.addEventListener('paste', handlePaste);
+                pasteListenerActive = true;
+                console.log('粘贴监听已激活');
+            }
+        });
+        
+        // 鼠标离开B区时移除粘贴监听
+        zoneB.addEventListener('mouseleave', function() {
+            if (pasteListenerActive) {
+                document.removeEventListener('paste', handlePaste);
+                pasteListenerActive = false;
+                console.log('粘贴监听已移除');
+            }
+        });
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+        
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const zone = e.currentTarget.id;
+                const file = files[0];
+                
+                if (zone === 'zoneA') {
+                    fileA = file;
+                    displayFileInfo('A', file);
+                } else if (zone === 'zoneB') {
+                    fileB = file;
+                    displayFileInfo('B', file);
+                }
+                
+                updateReplaceButton();
+            }
+        }
+
+        function handlePaste(e) {
+            e.preventDefault();
+            console.log('粘贴事件触发');
+            
+            const clipboardData = e.clipboardData || window.clipboardData;
+            if (!clipboardData) {
+                console.log('不支持剪贴板API');
+                return;
+            }
+            
+            const items = clipboardData.items;
+            console.log('剪贴板项目数量:', items.length);
+            
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                console.log('剪贴板项目类型:', item.type);
+                
+                // 检查是否是图片类型
+                if (item.type.indexOf('image') !== -1) {
+                    const file = item.getAsFile();
+                    if (file) {
+                        console.log('成功获取文件:', file.name);
+                        fileB = file;
+                        displayFileInfo('B', file);
+                        updateReplaceButton();
+                        
+                        // 显示成功提示
+                        const statusDiv = document.getElementById('status');
+                        statusDiv.style.display = 'block';
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = '图片已成功粘贴到B区！';
+                        
+                        setTimeout(() => {
+                            statusDiv.style.display = 'none';
+                        }, 2000);
+                    } else {
+                        console.log('无法获取文件对象');
+                    }
+                    break; // 只处理第一个图片
+                }
+            }
+            
+            // 如果没有找到图片，显示提示
+            if (!fileB) {
+                const statusDiv = document.getElementById('status');
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'status info';
+                statusDiv.textContent = '未检测到图片，请确保复制的是图片文件';
+                
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        function displayFileInfo(zone, file) {
+            const infoDiv = document.getElementById(`info${zone}`);
+            const fileName = document.getElementById(`fileName${zone}`);
+            const fileSize = document.getElementById(`fileSize${zone}`);
+            
+            fileName.textContent = file.name;
+            fileSize.textContent = `大小: ${formatFileSize(file.size)}`;
+            infoDiv.style.display = 'block';
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function updateReplaceButton() {
+            const replaceBtn = document.getElementById('replaceBtn');
+            replaceBtn.disabled = !(fileA && fileB);
+        }
+        
+        // 替换按钮点击事件 - 使用File System Access API执行文件替换
+        document.getElementById('replaceBtn').addEventListener('click', async function() {
+            if (!fileA || !fileB) return;
+            
+            const statusDiv = document.getElementById('status');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status info';
+            statusDiv.textContent = '正在执行文件替换操作...';
+            
+            try {
+                // 检查是否已授权
+                if (!dirHandle) {
+                    throw new Error('请先授权访问文件夹');
+                }
+                
+                // 1. 删除原文件（A区文件）
+                try {
+                    await dirHandle.removeEntry(fileA.name);
+                    console.log('原文件已删除:', fileA.name);
+                } catch (err) {
+                    console.warn('删除原文件失败，可能文件不存在:', err);
+                }
+                
+                // 2. 创建新文件（B区文件），使用原文件名
+                const newFileHandle = await dirHandle.getFileHandle(fileA.name, { create: true });
+                const writable = await newFileHandle.createWritable();
+                
+                // 将B区文件内容写入新文件
+                const fileBArrayBuffer = await fileB.arrayBuffer();
+                await writable.write(fileBArrayBuffer);
+                await writable.close();
+                
+                console.log('新文件已创建:', fileA.name);
+                
+                // 显示成功消息
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `
+                    <strong>文件替换成功！</strong><br>
+                    已成功将 ${fileA.name} 替换为新的文件。<br>
+                    原文件已删除，新文件已重命名并保存到正确位置。
+                `;
+                
+                // 重置文件选择
+                fileA = null;
+                fileB = null;
+                document.getElementById('infoA').style.display = 'none';
+                document.getElementById('infoB').style.display = 'none';
+                updateReplaceButton();
+                
+            } catch (error) {
+                console.error('文件替换失败:', error);
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `文件替换失败: ${error.message}`;
+            }
+        });
+        
+        // 点击区域选择文件
+        zones.forEach(zone => {
+            zone.addEventListener('click', function() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '*/*';
+                input.onchange = function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const zoneId = zone.id;
+                        if (zoneId === 'zoneA') {
+                            fileA = file;
+                            displayFileInfo('A', file);
+                        } else if (zoneId === 'zoneB') {
+                            fileB = file;
+                            displayFileInfo('B', file);
+                        }
+                        updateReplaceButton();
+                    }
+                };
+                input.click();
+            });
+        });
+    </script>
+</body>
+</html>

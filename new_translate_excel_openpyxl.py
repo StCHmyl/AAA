@@ -125,15 +125,17 @@ def api_counter_thread():
 
 def translate_single(text, ean=None, pinpai=None):
     """新版翻译函数，支持ean条码参数"""
-    if not text or str(text).strip().lower() == 'nan':
-        return "NAN"
-    
-    # 优先使用ean条码匹配
+        # 优先使用ean条码匹配
     if ean:
         print(f"[INFO] 使用EAN条码匹配: {ean}")
         chinese_name = matcher.get_CHINESE_NAME(ean)
         if chinese_name:
             return chinese_name
+
+    if not text or str(text).strip().lower() == 'nan':
+        return "NAN"
+    
+
     
     # 无ean或匹配失败时使用香水名称匹配
     name_results = matcher.get_top_names(str(text))

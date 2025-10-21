@@ -1,0 +1,383 @@
+{
+  "analysis_summary": {
+    "total_files": 29858,
+    "total_size_bytes": 1674597610,
+    "total_size_human": "1.6 GB",
+    "average_size_bytes": 56085.39118494206,
+    "average_size_human": "54.8 KB",
+    "analysis_timestamp": "2025-10-16 15:40:54"
+  },
+  "file_type_distribution": {
+    ".jpg": 29857,
+    ".png": 1
+  },
+  "size_distribution": [
+    {
+      "label": "0-1KB",
+      "count": 1,
+      "percentage": 0.0033491861477660933
+    },
+    {
+      "label": "1-10KB",
+      "count": 5386,
+      "percentage": 18.038716591868177
+    },
+    {
+      "label": "10-100KB",
+      "count": 20232,
+      "percentage": 67.76073414160359
+    },
+    {
+      "label": "100KB-1MB",
+      "count": 4219,
+      "percentage": 14.130216357425146
+    },
+    {
+      "label": ">1MB",
+      "count": 20,
+      "percentage": 0.06698372295532186
+    }
+  ],
+  "file_name_analysis": {
+    "name_length_range": [
+      7,
+      14
+    ],
+    "common_name_lengths": [
+      {
+        "length": 13,
+        "count": 20932,
+        "percentage": 70.10516444503986
+      },
+      {
+        "length": 12,
+        "count": 7473,
+        "percentage": 25.028468082256012
+      },
+      {
+        "length": 11,
+        "count": 1333,
+        "percentage": 4.464465134972202
+      },
+      {
+        "length": 8,
+        "count": 107,
+        "percentage": 0.35836291781097196
+      },
+      {
+        "length": 7,
+        "count": 7,
+        "percentage": 0.023444303034362648
+      }
+    ],
+    "numeric_names_count": 29858,
+    "numeric_names_percentage": 100.0
+  },
+  "directory_structure": {
+    "subdirectory_count": 0,
+    "subdirectories": []
+  },
+  "anomaly_checks": {
+    "empty_files": {
+      "count": 0,
+      "files": []
+    },
+    "small_files": 0,
+    "large_files": 0,
+    "non_standard_extensions": 0
+  },
+  "duplicate_files": {
+    "duplicate_groups_count": 858,
+    "files_involved_count": 2876,
+    "duplicate_groups": [
+      {
+        "hash": "e5e7559bda447fcb8f55789dfc25a540",
+        "files": [
+          {
+            "name": "0027131821953.jpg",
+            "size": "22.7 KB"
+          },
+          {
+            "name": "27131821953.jpg",
+            "size": "22.7 KB"
+          }
+        ]
+      },
+      {
+        "hash": "4c1cc6ef143967e9b7165fed4358ac5f",
+        "files": [
+          {
+            "name": "0027131987840.jpg",
+            "size": "18.0 KB"
+          },
+          {
+            "name": "027131987840.jpg",
+            "size": "18.0 KB"
+          },
+          {
+            "name": "27131987840.jpg",
+            "size": "18.0 KB"
+          }
+        ]
+      },
+      {
+        "hash": "90375981b7d163ea8f9b900acb193db9",
+        "files": [
+          {
+            "name": "0027131988106.jpg",
+            "size": "7.9 KB"
+          },
+          {
+            "name": "27131988106.jpg",
+            "size": "7.9 KB"
+          }
+        ]
+      },
+      {
+        "hash": "30f5b0bab2ed8b9806e293c1237eb7e9",
+        "files": [
+          {
+            "name": "0088300104406.jpg",
+            "size": "14.9 KB"
+          },
+          {
+            "name": "088300104406.jpg",
+            "size": "14.9 KB"
+          },
+          {
+            "name": "88300104406.jpg",
+            "size": "14.9 KB"
+          }
+        ]
+      },
+      {
+        "hash": "23b47c790fdec21c89077f2fcfc835a4",
+        "files": [
+          {
+            "name": "0088300107407.jpg",
+            "size": "8.7 KB"
+          },
+          {
+            "name": "088300107407.jpg",
+            "size": "8.7 KB"
+          },
+          {
+            "name": "88300107407.jpg",
+            "size": "8.7 KB"
+          }
+        ]
+      },
+      {
+        "hash": "0447619e49f504ce5002afd622963384",
+        "files": [
+          {
+            "name": "018084885154.jpg",
+            "size": "9.4 KB"
+          },
+          {
+            "name": "18084885154.jpg",
+            "size": "9.4 KB"
+          }
+        ]
+      },
+      {
+        "hash": "eef52f06d22b4a3a91e492236c174e6b",
+        "files": [
+          {
+            "name": "018084950081.jpg",
+            "size": "14.0 KB"
+          },
+          {
+            "name": "18084950081.jpg",
+            "size": "14.0 KB"
+          }
+        ]
+      },
+      {
+        "hash": "8f9eccd05033ac5d9b2b5650f62ad6c6",
+        "files": [
+          {
+            "name": "018084955154.jpg",
+            "size": "10.9 KB"
+          },
+          {
+            "name": "18084955154.jpg",
+            "size": "10.9 KB"
+          }
+        ]
+      },
+      {
+        "hash": "34090de2f75f38a7b962272f5b107ab4",
+        "files": [
+          {
+            "name": "018084977002.jpg",
+            "size": "10.3 KB"
+          },
+          {
+            "name": "18084977002.jpg",
+            "size": "10.3 KB"
+          }
+        ]
+      },
+      {
+        "hash": "95b00c3fd1c7525c231fc79141ea021a",
+        "files": [
+          {
+            "name": "018084998083.jpg",
+            "size": "9.9 KB"
+          },
+          {
+            "name": "18084998083.jpg",
+            "size": "9.9 KB"
+          }
+        ]
+      },
+      {
+        "hash": "8686053a6c8bef05b3bf4c0ecb56aaa0",
+        "files": [
+          {
+            "name": "0192333169315.jpg",
+            "size": "34.8 KB"
+          },
+          {
+            "name": "192333169315.jpg",
+            "size": "34.8 KB"
+          }
+        ]
+      },
+      {
+        "hash": "0972fdb6f52df1123e83c7cb5df37457",
+        "files": [
+          {
+            "name": "020714000318.jpg",
+            "size": "14.1 KB"
+          },
+          {
+            "name": "20714000318.jpg",
+            "size": "14.1 KB"
+          }
+        ]
+      },
+      {
+        "hash": "df09c156eb860d0449c51aeb6495566f",
+        "files": [
+          {
+            "name": "020714001940.jpg",
+            "size": "7.6 KB"
+          },
+          {
+            "name": "020714005887.jpg",
+            "size": "7.6 KB"
+          },
+          {
+            "name": "020714999346.jpg",
+            "size": "7.6 KB"
+          },
+          {
+            "name": "20714001940.jpg",
+            "size": "7.6 KB"
+          },
+          {
+            "name": "20714005887.jpg",
+            "size": "7.6 KB"
+          },
+          {
+            "name": "20714999346.jpg",
+            "size": "7.6 KB"
+          }
+        ]
+      },
+      {
+        "hash": "f09d96c466405332de49f2398491fdf4",
+        "files": [
+          {
+            "name": "020714007058.jpg",
+            "size": "9.7 KB"
+          },
+          {
+            "name": "20714007058.jpg",
+            "size": "9.7 KB"
+          }
+        ]
+      },
+      {
+        "hash": "cf05e4c2d1cad02ee258e07f45c779e7",
+        "files": [
+          {
+            "name": "020714012786.jpg",
+            "size": "9.6 KB"
+          },
+          {
+            "name": "20714012786.jpg",
+            "size": "9.6 KB"
+          }
+        ]
+      },
+      {
+        "hash": "2adaa83f8848a9b98f873e5f97d97ce3",
+        "files": [
+          {
+            "name": "020714015459.jpg",
+            "size": "39.9 KB"
+          },
+          {
+            "name": "20714015459.jpg",
+            "size": "39.9 KB"
+          }
+        ]
+      },
+      {
+        "hash": "af9b410f14b20be949e762fc83744e9f",
+        "files": [
+          {
+            "name": "020714045159.jpg",
+            "size": "9.0 KB"
+          },
+          {
+            "name": "20714045159.jpg",
+            "size": "9.0 KB"
+          }
+        ]
+      },
+      {
+        "hash": "44f557a75eaf62581145b1f426c68da1",
+        "files": [
+          {
+            "name": "020714052959.jpg",
+            "size": "6.0 KB"
+          },
+          {
+            "name": "20714052959.jpg",
+            "size": "6.0 KB"
+          }
+        ]
+      },
+      {
+        "hash": "fae50067f263ab82694aef6583a8b905",
+        "files": [
+          {
+            "name": "020714080303.jpg",
+            "size": "24.4 KB"
+          },
+          {
+            "name": "20714080303.jpg",
+            "size": "24.4 KB"
+          }
+        ]
+      },
+      {
+        "hash": "c76cb947e83a758f53c716bdb42b3278",
+        "files": [
+          {
+            "name": "020714080310.jpg",
+            "size": "16.4 KB"
+          },
+          {
+            "name": "20714080310.jpg",
+            "size": "16.4 KB"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "database_path": "../barcode_cache.db",
+  "tables": {
+    "products": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "barcode",
+          "type": "TEXT",
+          "notnull": false,
+          "default_value": null,
+          "pk": true
+        },
+        {
+          "cid": 1,
+          "name": "product_name",
+          "type": "TEXT",
+          "notnull": false,
+          "default_value": null,
+          "pk": false
+        },
+        {
+          "cid": 2,
+          "name": "image_url",
+          "type": "TEXT",
+          "notnull": false,
+          "default_value": null,
+          "pk": false
+        },
+        {
+          "cid": 3,
+          "name": "image_filepath",
+          "type": "TEXT",
+          "notnull": false,
+          "default_value": null,
+          "pk": false
+        }
+      ],
+      "row_count": 33752,
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_products_1",
+          "unique": true,
+          "columns": [
+            "barcode"
+          ]
+        }
+      ]
+    }
+  }
+}

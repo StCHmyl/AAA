@@ -1,3 +1,7 @@
 {
-    "clineChinese.preferredLanguage": "Simplified Chinese - 简体中文"
+    "clineChinese.preferredLanguage": "Simplified Chinese - 简体中文",
+    "python-envs.defaultEnvManager": "ms-python.python:venv",
+    "python-envs.defaultPackageManager": "ms-python.python:pip",
+    "python-envs.pythonProjects": [],
+    "python.defaultInterpreterPath": "patupian\\Scripts\\python.exe"
 }

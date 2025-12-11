@@ -69,13 +69,41 @@ class PerfumeMatcher:
         try:
             # 这里需要实现从中文品名汇总表.xlsx中根据ean查找中文名称的逻辑
             # 示例代码 - 实际实现需要根据具体文件格式调整
-            if not hasattr(self, 'ean_df'):
+            #print(f"正在根据EAN {ean} 查找中文品名...")
+            if not hasattr(self, 'ean_df'):#
                 self.ean_df = pd.read_excel('中文品名汇总表.xlsx')
+                """
+                #打印表单行数
+                print(f"中文品名汇总表.xlsx 行数: {len(self.ean_df)}")
+                print(f"中文品名汇总表.xlsx 列数: {len(self.ean_df.columns)}")
+                #打印表单前5行
+                print(f"中文品名汇总表.xlsx 前5行数据:")
+                print(self.ean_df.head())
+                #打印表单14016行和其之后5行
+                print(f"中文品名汇总表.xlsx 第14016行及之后5行数据:")
+                print(self.ean_df.iloc[14016:14021])
+                """
+
+            """
+            # 添加数据类型调试
+            print(f"EAN数据类型: {type(ean)}, 值: {ean}")
+            print(f"条码列数据类型: {self.ean_df['条码'].dtype}")
+            """
+            # 确保ean是字符串类型进行比较
+            ean_str = str(ean).strip()
+            #print(f"转换后的EAN: '{ean_str}'")
             
-            result = self.ean_df[self.ean_df['条码'] == ean]
+            # 尝试精确匹配
+            result = self.ean_df[self.ean_df['条码'].astype(str).str.strip() == ean_str]
+            
             if not result.empty:
                 print(f"找到EAN {ean} 对应的中文品名: {result.iloc[0]['中文品名']}")
                 return result.iloc[0]['中文品名']
+            
+            # 如果精确匹配失败，尝试打印一些调试信息
+            #print(f"精确匹配失败，尝试查看前几个条码:")
+            #print(self.ean_df['条码'].astype(str).str.strip().head(10).tolist())
+            
             return None
         except Exception as e:
             print(f"EAN查找失败: {str(e)}")
@@ -170,9 +198,7 @@ def process_single(ws, row_idx, src_col_idx, dst_col_idx, barcode_col_idx=None, 
         src_cell = ws.cell(row=row_idx, column=src_col_idx+1)
         original = src_cell.value
         
-        if not original or str(original).strip() == '':
-            ws.cell(row=row_idx, column=dst_col_idx+1, value="NAN")
-            return True
+
             
         # 获取ean条码（如果提供了barcode列）
         ean = None
@@ -228,6 +254,7 @@ def get_excel_row_count(input_path):
 
 def translate_excel(input_path, output_path=None, start_row=0, end_row=None,
                   src_col=3, dst_col=11, barcode_col=None, show_log=True):
+    #input_path
     """主翻译函数，支持barcode_col参数"""
     if isinstance(src_col, str):
         src_col_idx = col_name_to_number(src_col)
@@ -284,7 +311,16 @@ def translate_excel(input_path, output_path=None, start_row=0, end_row=None,
         }
 
 if __name__ == "__main__":
+    
+    """
     answer=translate_single("LANCOME SET GENIFIQUE FACE 100 & LIGHT P")
     #打印翻译结果
     print("翻译结果：")
-    print(f"{answer}")
+    print(f"{answer}") """
+
+    #测试条码匹配
+    answer2=matcher.get_CHINESE_NAME("3147758029383")
+    answer3=matcher.get_CHINESE_NAME("3346130021148")
+    print("条码匹配结果：")
+    print(f"{answer2}")
+    print(f"{answer3}")

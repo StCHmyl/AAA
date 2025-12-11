@@ -135,19 +135,7 @@ def crawl_barcode_with_row(barcode, thread_name, results_list, row_index):
             chrome_options.add_argument("--disable-gpu")  # 禁用 GPU 加速，有时可避免问题
             chrome_options.add_argument("--window-size=1920x1080")  # 设置浏览器窗口大小
             chrome_options.add_argument(f"user-agent={ua}")
-
             driver = webdriver.Chrome(options=chrome_options)
-            '''
-            stealth(driver,
-                    languages=stealth_cfg["languages"],
-                    vendor=stealth_cfg["vendor"],
-                    platform=stealth_cfg["platform"],
-                    webgl_vendor=stealth_cfg["webgl_vendor"],
-                    renderer=stealth_cfg["renderer"],
-                    fix_hairline=True,
-                    )
-            '''
-
             # 设置额外的请求头来避免被拦截
             try:
                 driver.execute_cdp_cmd('Network.setExtraHTTPHeaders', {
@@ -156,8 +144,6 @@ def crawl_barcode_with_row(barcode, thread_name, results_list, row_index):
                 print(f"线程 {thread_name}: 已设置额外请求头")
             except Exception as e:
                 print(f"线程 {thread_name}: 设置额外请求头失败: {e}")
-            
-            # time.sleep(random.uniform(0.5, 1.5))
             driver.set_page_load_timeout(10)
             driver.get(url)
             print(f"线程 {thread_name} (尝试 {attempt + 1}/{retry_count}): 等待页面加载...")  # 增加日志

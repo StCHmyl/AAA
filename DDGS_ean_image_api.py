@@ -13,7 +13,7 @@ import warnings
 # 设置环境变量以避免CPU核心数检测警告
 os.environ['LOKY_MAX_CPU_COUNT'] = '4'
 
-def download_image_with_fallback(url, thumbnail_url, save_path=None, max_retries=3):
+def download_image_with_fallback(url, thumbnail_url, save_path=None, max_retries=3, ean=None):
     """
     下载图片，添加重试机制和缩略图备选方案
     如果save_path为None，则返回图片内容而不保存到文件
@@ -35,15 +35,16 @@ def download_image_with_fallback(url, thumbnail_url, save_path=None, max_retries
                     img.save(save_path)
                 
                 image_data = response.content
+                print(f"图片下载：成功下载图片: {save_path}，EAN为{ean}")
                 break
             except Exception as e:
-                print(f"下载图片失败 {url} (尝试 {attempt+1}/{max_retries}): {str(e)}")
+                print(f"EAN为{ean}，下载图片失败 {url} (尝试 {attempt+1}/{max_retries}): {str(e)}")
                 if attempt < max_retries - 1:
                     time.sleep(2 ** attempt)  # 指数退避
     
     # 如果原图下载失败，尝试下载缩略图
     if image_data is None and thumbnail_url:
-        print(f"尝试下载缩略图替代: {thumbnail_url}")
+        print(f"EAN为{ean}，尝试下载缩略图替代: {thumbnail_url}")
         for attempt in range(max_retries):
             try:
                 response = requests.get(thumbnail_url, timeout=10)
@@ -57,14 +58,15 @@ def download_image_with_fallback(url, thumbnail_url, save_path=None, max_retries
                     img.save(save_path)
                 
                 image_data = response.content
+                print(f"图片下载：成功下载缩略图: {save_path}，EAN为{ean}")
                 break
             except Exception as e:
-                print(f"下载缩略图失败 {thumbnail_url} (尝试 {attempt+1}/{max_retries}): {str(e)}")
+                print(f"EAN为{ean}，下载缩略图失败 {thumbnail_url} (尝试 {attempt+1}/{max_retries}): {str(e)}")
                 if attempt < max_retries - 1:
                     time.sleep(2 ** attempt)  # 指数退避
     
     if image_data is None:
-        print(f"下载图片最终失败，原图: {url}, 缩略图: {thumbnail_url}")
+        print(f"EAN为{ean}，下载图片最终失败，原图: {url}, 缩略图: {thumbnail_url}")
     
     return image_data
 
@@ -206,7 +208,7 @@ def get_best_product_image(ean, temp_dir="temp"):
         
         if img_url or thumbnail_url:
             img_filename = f"{temp_dir}/{ean}_{i+1}.jpg"
-            image_data = download_image_with_fallback(img_url, thumbnail_url, img_filename)
+            image_data = download_image_with_fallback(img_url, thumbnail_url, save_path=img_filename, ean=ean)
             
             if image_data:
                 downloaded_images.append({

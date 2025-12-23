@@ -11,14 +11,6 @@ downloaded_images/*
 *.xlsx
 *.xls
 *.db
-__pycache__/backend.cpython-312.pyc
-__pycache__/backend.cpython-313.pyc
-__pycache__/barcode_excel_db.cpython-312.pyc
-__pycache__/barcode_excel_excel.cpython-312.pyc
-__pycache__/new_translate_excel_openpyxl.cpython-312.pyc
-__pycache__/new_translate_excel_openpyxl.cpython-313.pyc
-__pycache__/RandomUaStealth.cpython-312.pyc
-__pycache__/translate_excel_openpyxl.cpython-313.pyc
-__pycache__/translate_excel_openpyxl.cpython-313.pyc
 
 config.json
+__pycache__/*

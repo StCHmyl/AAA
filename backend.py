@@ -20,7 +20,9 @@ from barcode_excel_excel import read_barcodes_from_excel_with_row, update_excel_
 #from translate_excel_openpyxl import translate_excel
 from new_translate_excel_openpyxl import translate_excel
 from RandomUaStealth import get_random_stealth_config, get_random_user_agent, record_failure, record_success
+from DDGS_ean_image_api import get_best_product_image
 import random
+import shutil
 
 
 # --- 配置 ---
@@ -107,18 +109,65 @@ def crawl_barcode_with_row(barcode, thread_name, results_list, row_index):
         count += 1  # 增加总计数
         print(f"线程 {thread_name}: 当前总成功计数: {count}")
         return  # 从缓存获取，跳过爬取
-    elif cached_data and cached_data['product_name'] == "Not Found":
-        print(f"线程 {thread_name}: 条码 {barcode} 在缓存中标记为未找到。")  # 增加日志
-        # results_list.append((barcode, "Not Found", None, row_index))  # 添加未找到结果和行号
-        return  # 从缓存获取，跳过爬取
-    elif cached_data and cached_data['product_name'] == "N/A":
-        print(f"线程 {thread_name}: 条码 {barcode} 在缓存中标记为不规则数据。")  # 增加日志
-        # results_list.append((barcode, "Not Found", None, row_index))  # 添加未找到结果和行号
-        return  # 从缓存获取，跳过爬取
+    elif cached_data and cached_data['product_name'] == "Not Found And No Search":
+        print(f"线程 {thread_name}: 条码 {barcode} 在缓存中标记为未找到且无搜索结果，跳过。")  # 增加日志
+        return  # 已经尝试过所有方法，跳过
+    elif cached_data and cached_data['product_name'] == "N/A And No Search":
+        print(f"线程 {thread_name}: 条码 {barcode} 在缓存中标记为不规则数据且无搜索结果，跳过。")  # 增加日志
+        return  # 已经尝试过所有方法，跳过
+    elif cached_data and cached_data['product_name'] in ("N/A", "Not Found"):
+        # 旧的失败记录，直接尝试使用 DDGS API 重新检索
+        print(f"线程 {thread_name}: 条码 {barcode} 在缓存中标记为旧失败记录 ({cached_data['product_name']})，尝试使用 DDGS API 重新检索。")
+        try:
+            ddgs_result = get_best_product_image(barcode)
+            if ddgs_result and ddgs_result.get('image_path'):
+                # 从DDGS获取到图片
+                temp_image_path = ddgs_result['image_path']
+                metadata = ddgs_result.get('metadata', {})
+                
+                # 获取产品名称（从元数据的title字段）
+                product_name = metadata.get('title', f"Product {barcode}")
+                
+                # 将临时图片移动到标准图片目录
+                final_image_path = os.path.join(IMAGE_DIR, f"{barcode}.jpg")
+                if os.path.exists(temp_image_path):
+                    shutil.move(temp_image_path, final_image_path)
+                    print(f"线程 {thread_name}: 移动临时图片成功: {temp_image_path} -> {final_image_path}")
+                    image_filepath = final_image_path
+                    image_url = metadata.get('image', '')
+                    
+                    # 更新数据库（覆盖旧的失败记录）
+                    insert_product_to_db(barcode, product_name, image_url, image_filepath)
+                    print(f"线程 {thread_name}: 通过DDGS API成功更新条码 {barcode} 的数据。")
+                    
+                    # 添加结果到列表
+                    results_list.append((barcode, product_name, image_filepath, row_index))
+                    count_2 += 1
+                    count += 1
+                    print(f"线程 {thread_name}: 当前成功爬取条码数量: {count_2}")
+                    print(f"线程 {thread_name}: 当前总成功计数: {count}")
+                    return  # 成功获取，退出函数
+                else:
+                    print(f"线程 {thread_name}: DDGS临时图片文件不存在: {temp_image_path}")
+            else:
+                print(f"线程 {thread_name}: DDGS API未能获取条码 {barcode} 的图片。")
+        except Exception as ddgs_error:
+            print(f"线程 {thread_name}: DDGS API调用失败：{ddgs_error}")
+        
+        # DDGS也失败了，根据原始标记更新为新标记
+        if cached_data['product_name'] == "Not Found":
+            new_mark = "Not Found And No Search"
+            print(f"线程 {thread_name}: DDGS搜索失败，更新条码 {barcode} 标记为 {new_mark}。")
+            insert_product_to_db(barcode, new_mark, None, None)
+        else:  # N/A
+            new_mark = "N/A And No Search"
+            print(f"线程 {thread_name}: DDGS搜索失败，更新条码 {barcode} 标记为 {new_mark}。")
+            insert_product_to_db(barcode, new_mark, None, None)
+        return  # 退出函数
     # 2. 数据库中未找到或缓存无效，进行爬取
     url = BASE_URL.format(barcode)
     driver = None
-    retry_count = 5  # 重试次数
+    retry_count = 10  # 重试次数
     product_name = None
     image_url = None
     image_filepath = None
@@ -171,12 +220,49 @@ def crawl_barcode_with_row(barcode, thread_name, results_list, row_index):
                 #print(f"线程 {thread_name}当前Stealth配置: {stealth_cfg}")  # 增加日志
             # --- 条码未找到检测 ---
             if "Barcode Not Found | Barcode Lookup" in driver.title:
-                print(f"线程 {thread_name}: 条码 {barcode} 未找到，跳过下载和截图。")  # 增加日志
+                print(f"线程 {thread_name}: 条码 {barcode} 在barcodelookup.com未找到，尝试使用DDGS API。")  # 增加日志
                 if driver:
                     driver.quit()
-                # 将未找到的条码也存入数据库，标记为无产品信息，避免重复爬取
-                insert_product_to_db(barcode, "Not Found", None, None)
-                #results_list.append((barcode, "Not Found", None, row_index))  # 添加未找到结果和行号
+                
+                # 尝试使用DDGS API作为备用方案
+                try:
+                    ddgs_result = get_best_product_image(barcode)
+                    if ddgs_result and ddgs_result.get('image_path'):
+                        # 从DDGS获取到图片
+                        temp_image_path = ddgs_result['image_path']
+                        metadata = ddgs_result.get('metadata', {})
+                        
+                        # 获取产品名称（从元数据的title字段）
+                        product_name = metadata.get('title', f"Product {barcode}")
+                        
+                        # 将临时图片移动到标准图片目录
+                        final_image_path = os.path.join(IMAGE_DIR, f"{barcode}.jpg")
+                        if os.path.exists(temp_image_path):
+                            shutil.move(temp_image_path, final_image_path)
+                            image_filepath = final_image_path
+                            image_url = metadata.get('image', '')
+                            
+                            # 存储到数据库
+                            insert_product_to_db(barcode, product_name, image_url, image_filepath)
+                            print(f"线程 {thread_name}: 通过DDGS API成功获取条码 {barcode} 的数据。")
+                            
+                            # 添加结果到列表
+                            results_list.append((barcode, product_name, image_filepath, row_index))
+                            count_2 += 1
+                            count += 1
+                            print(f"线程 {thread_name}: 当前成功爬取条码数量: {count_2}")
+                            print(f"线程 {thread_name}: 当前总成功计数: {count}")
+                            return  # 成功获取，退出函数
+                        else:
+                            print(f"线程 {thread_name}: DDGS临时图片文件不存在: {temp_image_path}")
+                    else:
+                        print(f"线程 {thread_name}: DDGS API未能获取条码 {barcode} 的图片。")
+                except Exception as ddgs_error:
+                    print(f"线程 {thread_name}: DDGS API调用失败：{ddgs_error}")
+                
+                # DDGS也失败了，标记为未找到
+                print(f"线程 {thread_name}: barcodelookup和DDGS均未找到条码 {barcode}，标记为未找到。")
+                insert_product_to_db(barcode, "Not Found And No Search", None, None)
                 return  # 立即退出函数
             # --- 提取数据 ---
             print(f"线程 {thread_name}: 开始提取产品信息...")  # 增加日志
@@ -195,14 +281,51 @@ def crawl_barcode_with_row(barcode, thread_name, results_list, row_index):
                 print(f"线程 {thread_name}: 未找到产品名称元素或提取失败。")  # 增加日志
                 product_name = "N/A"  # 未找到则标记为N/A
             # --- 提取图片URL ---
-            # 如果产品名称异常，即为“N/A”，则认为产品名称异常，跳过图片提取和下载
+            # 如果产品名称异常，即为"N/A"，则尝试使用DDGS API搜索
             if product_name == "N/A":
-                print(f"线程 {thread_name}: 产品名称异常，标记为“N/A”，跳过图片提取和下载。")  # 增加日志
-                image_url = None
-                image_filepath = None
-                # 将异常数据存入数据库，标记为N/A，避免重复爬取
-                insert_product_to_db(barcode, "N/A", None, None)
-                #results_list.append((barcode, "Not Found", None, row_index))  # 添加未找到结果和行号
+                print(f"线程 {thread_name}: 产品名称异常，尝试使用DDGS API搜索。")  # 增加日志
+                if driver:
+                    driver.quit()
+                
+                # 尝试使用DDGS API作为备用方案
+                try:
+                    ddgs_result = get_best_product_image(barcode)
+                    if ddgs_result and ddgs_result.get('image_path'):
+                        # 从DDGS获取到图片
+                        temp_image_path = ddgs_result['image_path']
+                        metadata = ddgs_result.get('metadata', {})
+                        
+                        # 获取产品名称（从元数据的title字段）
+                        product_name = metadata.get('title', f"Product {barcode}")
+                        
+                        # 将临时图片移动到标准图片目录
+                        final_image_path = os.path.join(IMAGE_DIR, f"{barcode}.jpg")
+                        if os.path.exists(temp_image_path):
+                            shutil.move(temp_image_path, final_image_path)
+                            image_filepath = final_image_path
+                            image_url = metadata.get('image', '')
+                            
+                            # 存储到数据库
+                            insert_product_to_db(barcode, product_name, image_url, image_filepath)
+                            print(f"线程 {thread_name}: 通过DDGS API成功获取条码 {barcode} 的数据。")
+                            
+                            # 添加结果到列表
+                            results_list.append((barcode, product_name, image_filepath, row_index))
+                            count_2 += 1
+                            count += 1
+                            print(f"线程 {thread_name}: 当前成功爬取条码数量: {count_2}")
+                            print(f"线程 {thread_name}: 当前总成功计数: {count}")
+                            return  # 成功获取，退出函数
+                        else:
+                            print(f"线程 {thread_name}: DDGS临时图片文件不存在: {temp_image_path}")
+                    else:
+                        print(f"线程 {thread_name}: DDGS API未能获取条码 {barcode} 的图片。")
+                except Exception as ddgs_error:
+                    print(f"线程 {thread_name}: DDGS API调用失败：{ddgs_error}")
+                
+                # DDGS也失败了，标记为N/A And No Search （数据异常且搜索失败）
+                print(f"线程 {thread_name}: 产品名称异常且DDGS搜索失败，标记为N/A And No Search。")
+                insert_product_to_db(barcode, "N/A And No Search", None, None)
                 return  # 立即退出函数
             try:
                 # 提取图片URL
@@ -239,10 +362,46 @@ def crawl_barcode_with_row(barcode, thread_name, results_list, row_index):
             if attempt < retry_count - 1:
                 print(f"线程 {thread_name}: 进行重试。")  # 增加日志
             else:
-                # 如果达到最大重试次数，未能成功处理条码 {barcode}。
-                print(f"线程 {thread_name}: 达到最大重试次数，未能成功处理条码 {barcode}。")  # 增加日志
-                print("将attempt重置为1，进行额外尝试")  # 增加日志
-                attempt = 1  # 重置尝试计数器，进行额外尝试
+                # 如果达到最大重试次数，尝试使用DDGS API作为备用方案
+                print(f"线程 {thread_name}: 达到最大重试次数，尝试使用DDGS API获取图片。")  # 增加日志
+                try:
+                    ddgs_result = get_best_product_image(barcode)
+                    if ddgs_result and ddgs_result.get('image_path'):
+                        # 从DDGS获取到图片
+                        temp_image_path = ddgs_result['image_path']
+                        metadata = ddgs_result.get('metadata', {})
+                        
+                        # 获取产品名称（从元数据的title字段）
+                        product_name = metadata.get('title', f"Product {barcode}")
+                        
+                        # 将临时图片移动到标准图片目录
+                        final_image_path = os.path.join(IMAGE_DIR, f"{barcode}.jpg")
+                        if os.path.exists(temp_image_path):
+                            shutil.move(temp_image_path, final_image_path)
+                            image_filepath = final_image_path
+                            image_url = metadata.get('image', '')
+                            
+                            # 存储到数据库
+                            insert_product_to_db(barcode, product_name, image_url, image_filepath)
+                            print(f"线程 {thread_name}: 通过DDGS API成功获取条码 {barcode} 的数据。")
+                            
+                            # 添加结果到列表
+                            results_list.append((barcode, product_name, image_filepath, row_index))
+                            count_2 += 1
+                            count += 1
+                            print(f"线程 {thread_name}: 当前成功爬取条码数量: {count_2}")
+                            print(f"线程 {thread_name}: 当前总成功计数: {count}")
+                            return  # 成功获取，退出函数
+                        else:
+                            print(f"线程 {thread_name}: DDGS临时图片文件不存在: {temp_image_path}")
+                    else:
+                        print(f"线程 {thread_name}: DDGS API未能获取条码 {barcode} 的图片。")
+                except Exception as ddgs_error:
+                    print(f"线程 {thread_name}: DDGS API调用失败：{ddgs_error}")
+                
+                # DDGS也失败了，标记为未找到
+                print(f"线程 {thread_name}: 所有方法均失败，标记条码 {barcode} 为未搜索到。")
+                insert_product_to_db(barcode, "No Search", None, None)
         except Exception as e:
             print(f"线程 {thread_name} (尝试 {attempt + 1}/{retry_count}): 发生未知错误：{e}")  # 增加日志
             if driver:
